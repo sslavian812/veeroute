@@ -3,64 +3,19 @@ package com.veeroute.shalamov;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
 
 /**
  * Created by viacheslav on 09.09.15.
  */
-public class AnnealingSolution implements Solution {
+public class AbstractSolution {
 
     List<Order> orders;
     Map map;
     int n;
-
-    private Transformer transformer = new RandomReverseTransforner();
-
-    public AnnealingSolution(List<Order> orders, Map map) {
-        this.orders = orders;
-        this.map = map;
-        n = orders.size();
-    }
-
-    @Override
-    public Plan getPlan() {
-        double initT = 30;
-        double minT = 0.01;
-        int i = 1;
-        Collections.shuffle(orders, new Random());
-        double curT = initT;
-        Plan lastPlan = constructPlan(orders);
-        Plan bestPlan = constructPlan(orders);
-        int lastEnergy = lastPlan.getCost();
-        int bestEnergy = bestPlan.getCost();
-
-        while (curT > minT) {
-            curT = initT / Math.pow(1.00001, i);
-            ++i;
-            List<Order> nextStep = transformer.f(orders);
-            Plan nextPlan = constructPlan(nextStep);
-            int nextEnergy = nextPlan.getCost();
-            double delta = nextEnergy - lastEnergy;
-            if (delta <= 0) {
-                orders = nextStep;
-                lastEnergy = nextEnergy;
-            } else {
-                double p = Math.exp(-delta / curT / 1000);
-                System.out.println("iteration: " + i + ". enegy: " + lastEnergy + ". temperature: " + curT + ". probability: " + p + " delta: " + delta);
-                if ((new Random().nextDouble()) < p) {
-                    orders = nextStep;
-                    lastEnergy = nextEnergy;
-                    System.out.println("allowed!");
-                }
-            }
-            if (nextEnergy < bestEnergy) {
-                bestPlan = nextPlan;
-                bestEnergy = nextEnergy;
-            }
-        }
-
-        return bestPlan;
-    }
 
     public Plan constructPlan(List<Order> orders) {
         List<Route> routes = new ArrayList<>();
