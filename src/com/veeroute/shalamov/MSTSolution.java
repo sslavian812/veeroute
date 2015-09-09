@@ -16,9 +16,10 @@ public class MSTSolution extends AbstractSolution implements Solution {
 //    int n;
 
     public MSTSolution(List<Order> orders, Map map) {
-        this.orders = orders;
-        this.map = map;
-        n = orders.size();
+//        this.orders = orders;
+//        this.map = map;
+//        n = orders.size();
+        super(orders, map);
     }
 
     private List<Pair<Integer, Integer>> mst() {
@@ -96,6 +97,10 @@ public class MSTSolution extends AbstractSolution implements Solution {
             next.set(i, orders.get(at));
         }
         return next;
+    }
+
+    public List<Order> arrangeAsMST() {
+        return rearrangeOrders(mstPath(mst()));
     }
 
     @Override

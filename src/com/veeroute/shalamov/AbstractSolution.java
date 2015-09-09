@@ -11,12 +11,19 @@ import java.util.Locale;
 /**
  * Created by viacheslav on 09.09.15.
  */
-public class AbstractSolution {
+public class AbstractSolution implements Solution {
 
     List<Order> orders;
     Map map;
     int n;
 
+    public AbstractSolution(List<Order> orders, Map map) {
+        this.orders = orders;
+        this.map = map;
+        n = orders.size();
+    }
+
+    @Override
     public Plan constructPlan(List<Order> orders) {
         List<Route> routes = new ArrayList<>();
         Route route = new Route(map);
@@ -79,5 +86,10 @@ public class AbstractSolution {
             route.wayPoints.add(wp);
         }
         return new Plan(routes);
+    }
+
+    @Override
+    public Plan getPlan() {
+        return null;
     }
 }
