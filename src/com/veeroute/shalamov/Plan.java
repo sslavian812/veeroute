@@ -1,5 +1,6 @@
 package com.veeroute.shalamov;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -12,6 +13,7 @@ public class Plan {
     public Plan(List<Route> routes) {
         this.routes = routes;
     }
+
 
     public int getCost() {
         int acc = 0;
