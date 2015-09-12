@@ -16,7 +16,7 @@ public class MultiTimeSolution implements Solution {
     Map map;
     int n;
 
-    List<Courier> pool;
+    List<Courier> couriers;
 
     MultiTimeSolution(List<Order> orders, Map map, Date[] start, Date[] end) {
         this.orders = orders;
@@ -24,7 +24,7 @@ public class MultiTimeSolution implements Solution {
         this.n = orders.size();
         this.start = start;
         this.end = end;
-        this.pool = new ArrayList<>();
+        this.couriers = new ArrayList<>();
     }
 
     @Override
@@ -36,15 +36,16 @@ public class MultiTimeSolution implements Solution {
                     .collect(Collectors.toList());
             Transformer mstTransformer = new MSTTransformer(map);
             bucket = mstTransformer.f(bucket);
-            Transformer annealingTransformer = new AnnealingTransformer(
-                    map, pool, start[bucketNumber], end[bucketNumber]);
+
+
+            AnnealingScheduler annealingTransformer = new AnnealingScheduler(
+                    map, couriers, start[bucketNumber], end[bucketNumber]);
             // todo set parameters
-            bucket = annealingTransformer.f(bucket);
-            constructPlan(bucket);
+            couriers = annealingTransformer.schedule(bucket);
         }
 
         List<Route> routes = new ArrayList<>();
-        for (Courier c : pool) {
+        for (Courier c : couriers) {
             routes.add(new Route(map, c.wayPoints));
         }
         return new Plan(routes);
@@ -52,12 +53,13 @@ public class MultiTimeSolution implements Solution {
 
     /**
      * Constructs routes from given orders (ordered as they are)
-     * using nearest available couriers from pool and creates new couriers if necessary.
+     * using nearest available couriers from couriers and creates new couriers if necessary.
      *
      * @param orders
      * @return
      */
     @Override
+    @Deprecated
     public Plan constructPlan(List<Order> orders) {
         return null;
     }

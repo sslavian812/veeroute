@@ -44,12 +44,14 @@ public class Courier {
 
         wp.arrival = new Date((curTime + dest) * 1000);
 
-        wp.start = new Date(Math.max((curTime + dest) * 1000, order.from.getTime()));
+        if(wayPoints.isEmpty())
+            wp.start = new Date(order.from.getTime());
+        else
+            wp.start = new Date(Math.max((curTime + dest) * 1000, order.from.getTime()));
         wp.finish = new Date(wp.start.getTime() + order.work * 1000);
         curTime = wp.finish.getTime() / 1000;
 
         curOrderId = order.id;
         wayPoints.add(wp);
-        freeSlot++;
     }
 }

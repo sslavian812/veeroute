@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 /**
  * Created by viacheslav on 10.09.15.
  */
-public class AnnealingTransformer implements Transformer {
+public class AnnealingScheduler {
 
     private Transformer transformer = new RandomReverseTransforner();
 
@@ -17,22 +17,25 @@ public class AnnealingTransformer implements Transformer {
     List<Order> orders;
     int n;
 
-    List<Courier> pool;
+    List<Courier> curPool;
     List<Courier> originalPool;
+    List<Courier> bestPool;
+
+    private List<Order> bestOrders;
 
     long startTime;
     long timeGap;
 
     private double initT = 0.10;
     private double minT = 0.001;
-    private double alpha = 1.0001;
+    private double alpha = 1.00001;
     private double balance = 1.0 / 1000.0;
 
 
-    public AnnealingTransformer(Map map, List<Courier> pool) {
+    public AnnealingScheduler(Map map, List<Courier> pool) {
         this.map = map;
         this.originalPool = pool;
-        this.pool = new ArrayList<>(originalPool);
+        this.curPool = new ArrayList<>(originalPool);
         DateFormat format = new SimpleDateFormat("HH:mm:ss", Locale.ENGLISH);
         startTime = 0;
         try {
@@ -43,10 +46,10 @@ public class AnnealingTransformer implements Transformer {
         this.timeGap = 12 * 60 * 60;
     }
 
-    public AnnealingTransformer(Map map, List<Courier> pool, Date start, Date end) {
+    public AnnealingScheduler(Map map, List<Courier> pool, Date start, Date end) {
         this.map = map;
         this.originalPool = pool;
-        this.pool = new ArrayList<>(originalPool);
+        this.curPool = new ArrayList<>(originalPool);
         this.startTime = start.getTime() / 1000;
         this.timeGap = (end.getTime() - start.getTime()) / 1000;
     }
@@ -62,25 +65,21 @@ public class AnnealingTransformer implements Transformer {
     }
 
 
-    @Override
-    public List<Order> f(List<Order> orders) {
+    public List<Courier> schedule(List<Order> orders) {
         this.orders = orders;
         this.n = orders.size();
         getPlan();
-        return bestOrders;
+        return bestPool;
     }
 
-
-    private List<Order> bestOrders;
-    private List<Courier> bestPool;
 
     public Plan getPlan() {
         int i = 1;
         double curT = initT;
-        Plan lastPlan = constructPlan(orders);
         bestOrders = orders;
-        int lastEnergy = lastPlan.getCost();
-        int bestEnergy = lastPlan.getCost();
+        Plan curPlan = constructPlan(orders);
+        int curEnergy = curPlan.getCost();
+        int bestEnergy = curPlan.getCost();
 
         while (curT > minT) {
             curT = initT / Math.pow(alpha, i);
@@ -88,16 +87,16 @@ public class AnnealingTransformer implements Transformer {
             List<Order> nextOrders = transformer.f(orders);
             Plan nextPlan = constructPlan(nextOrders);
             int nextEnergy = nextPlan.getCost();
-            double delta = nextEnergy - lastEnergy;
+            double delta = nextEnergy - curEnergy;
             if (delta <= 0) {
                 orders = nextOrders;
-                lastEnergy = nextEnergy;
+                curEnergy = nextEnergy;
             } else {
                 double p = Math.exp(-delta / curT * balance);
-                System.out.println("iteration: " + i + ". enegy: " + lastEnergy + ". temperature: " + curT + ". probability: " + p + " delta: " + delta);
+                System.out.println("iteration: " + i + ". enegy: " + curEnergy + ". temperature: " + curT + ". probability: " + p + " delta: " + delta);
                 if ((new Random().nextDouble()) < p) {
                     orders = nextOrders;
-                    lastEnergy = nextEnergy;
+                    curEnergy = nextEnergy;
                     System.out.println("allowed!");
                 }
             }
@@ -106,8 +105,6 @@ public class AnnealingTransformer implements Transformer {
                 bestEnergy = nextEnergy;
             }
         }
-
-        originalPool = bestPool;
 
         List<Route> bestRoutes = bestPool.stream()
                 .map(c -> new Route(map, c.wayPoints))
@@ -118,7 +115,7 @@ public class AnnealingTransformer implements Transformer {
 
     public Plan constructPlan(List<Order> orders) {
         Courier courier = null;
-        pool = new ArrayList<>(originalPool);
+        curPool = new ArrayList<>(originalPool);
 
         for (Order o : orders) {
             if (courier != null && !courier.isAvailable(o, map.time(courier.curOrderId, o.id))) {
@@ -128,8 +125,8 @@ public class AnnealingTransformer implements Transformer {
             if (courier == null) {
                 courier = getCourier(o);
                 if (courier == null) {
-                    courier = new Courier(pool.size(), 0, startTime);
-                    pool.add(courier);
+                    courier = new Courier(curPool.size(), 0, startTime);
+                    curPool.add(courier);
                     courier.addOrder(o, 0);
                     continue;
                 }
@@ -138,28 +135,28 @@ public class AnnealingTransformer implements Transformer {
         }
 
         List<Route> routes = new ArrayList<>();
-        for (Courier c : pool) {
+        for (Courier c : curPool) {
             routes.add(new Route(map, c.wayPoints));
         }
 
-        if(bestPool == null)
-            bestPool = new ArrayList<>(pool);
+        if (bestPool == null)
+            bestPool = new ArrayList<>(curPool);
 
         List<Route> bestRoutes = bestPool.stream()
                 .map(c -> new Route(map, c.wayPoints))
                 .collect(Collectors.toList());
 
-        if((new Plan(bestRoutes)).getCost() > (new Plan(routes)).getCost())
-            bestPool = pool;
+        if ((new Plan(bestRoutes)).getCost() > (new Plan(routes)).getCost())
+            bestPool = curPool;
 
         return new Plan(routes);
     }
 
     private Courier getCourier(Order order) {
-        if (pool.isEmpty())
+        if (curPool.isEmpty())
             return null;
         Courier nearestCourier = null;
-        for (Courier c : pool) {
+        for (Courier c : curPool) {
             if (c.curTime + map.time(c.curOrderId, order.id) < startTime + timeGap) {
                 if (nearestCourier == null
                         || map.time(nearestCourier.curOrderId, order.id) > map.time(c.curOrderId, order.id)) {
