@@ -38,7 +38,6 @@ public class AnnealingSolution extends AbstractSolution implements Solution {
         int i = 1;
         double curT = initT;
         Plan lastPlan = constructPlan(orders);
-//        Plan bestPlan = constructPlan(orders);
         bestOrders = orders;
         int lastEnergy = lastPlan.getCost();
         int bestEnergy = lastPlan.getCost();

@@ -41,7 +41,13 @@ public class MultiTimeSolution implements Solution {
             AnnealingScheduler annealingTransformer = new AnnealingScheduler(
                     map, couriers, start[bucketNumber], end[bucketNumber]);
             // todo set parameters
-            couriers = annealingTransformer.schedule(bucket);
+
+            List<Route> routes = new ArrayList<>();
+            for (Courier c : couriers) {
+                routes.add(new Route(map, c.wayPoints));
+            }
+
+            couriers = annealingTransformer.schedule(bucket,(new Plan(routes)).getCost());
         }
 
         List<Route> routes = new ArrayList<>();

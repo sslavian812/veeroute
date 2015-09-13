@@ -13,7 +13,7 @@ public class RandomReverseTransforner implements Transformer {
     public List<Order> f(List<Order> orders) {
         List<Order> copy = new ArrayList<>(orders.size());
 
-        int max = 2;
+        int max = 10;
         Random r = new Random();
         int subsetSize = (int)(r.nextDouble() * max) + 2;
         int startIndex = (int) (r.nextDouble() * (orders.size() - (max+2)));

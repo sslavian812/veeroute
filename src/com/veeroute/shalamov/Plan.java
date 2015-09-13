@@ -23,6 +23,13 @@ public class Plan {
         return acc;
     }
 
+    public int getSize() {
+        int acc = 0;
+        for (Route r : routes)
+            acc += r.wayPoints.size();
+        return acc;
+    }
+
     public boolean lessThan(Plan other) {
         return this.getCost() < other.getCost();
     }

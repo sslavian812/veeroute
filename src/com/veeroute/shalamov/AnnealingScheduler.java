@@ -26,10 +26,15 @@ public class AnnealingScheduler {
     long startTime;
     long timeGap;
 
-    private double initT = 0.10;
+    private double initT = 0.05;
     private double minT = 0.001;
     private double alpha = 1.00001;
     private double balance = 1.0 / 1000.0;
+
+
+    Plan curPlan;
+    long curEnergy;
+    long bestEnergy;
 
 
     public AnnealingScheduler(Map map, List<Courier> pool) {
@@ -65,21 +70,21 @@ public class AnnealingScheduler {
     }
 
 
-    public List<Courier> schedule(List<Order> orders) {
+    public List<Courier> schedule(List<Order> orders, long additionalCost) {
         this.orders = orders;
         this.n = orders.size();
+        curPlan = constructPlan(orders);
+        curEnergy = curPlan.getCost() + additionalCost;
+        bestEnergy = curPlan.getCost() + additionalCost;
+        bestOrders = orders;
         getPlan();
         return bestPool;
     }
 
 
-    public Plan getPlan() {
+    private Plan getPlan() {
         int i = 1;
         double curT = initT;
-        bestOrders = orders;
-        Plan curPlan = constructPlan(orders);
-        int curEnergy = curPlan.getCost();
-        int bestEnergy = curPlan.getCost();
 
         while (curT > minT) {
             curT = initT / Math.pow(alpha, i);
@@ -92,7 +97,7 @@ public class AnnealingScheduler {
                 orders = nextOrders;
                 curEnergy = nextEnergy;
             } else {
-                double p = Math.exp(-delta / curT * balance);
+                double p = Math.exp(-delta / curT * balance+ 3);
                 System.out.println("iteration: " + i + ". enegy: " + curEnergy + ". temperature: " + curT + ". probability: " + p + " delta: " + delta);
                 if ((new Random().nextDouble()) < p) {
                     orders = nextOrders;
@@ -113,7 +118,7 @@ public class AnnealingScheduler {
     }
 
 
-    public Plan constructPlan(List<Order> orders) {
+    private Plan constructPlan(List<Order> orders) {
         Courier courier = null;
         curPool = new ArrayList<>(originalPool);
 
