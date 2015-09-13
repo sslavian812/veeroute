@@ -38,13 +38,19 @@ public class Courier {
     }
 
     public void addOrder(Order order, long dest) {
+        for (WayPoint w : wayPoints) {
+            if (w.orderId.equals(order.id)) {
+                System.out.println("ALERT!!! adding dulplicate order " + order.id + " to courier " + id);
+                return;
+            }
+        }
         WayPoint wp = new WayPoint(order, id);
         wp.stop = freeSlot;
         freeSlot++;
 
         wp.arrival = new Date((curTime + dest) * 1000);
 
-        if(wayPoints.isEmpty())
+        if (wayPoints.isEmpty())
             wp.start = new Date(order.from.getTime());
         else
             wp.start = new Date(Math.max((curTime + dest) * 1000, order.from.getTime()));

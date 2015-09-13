@@ -17,22 +17,19 @@ public class AnnealingScheduler {
     List<Order> orders;
     int n;
 
-    List<Courier> curPool;
     List<Courier> originalPool;
     List<Courier> bestPool;
 
-    private List<Order> bestOrders;
 
     long startTime;
     long timeGap;
 
     private double initT = 0.05;
-    private double minT = 0.001;
+    private double minT = 0.0005;
     private double alpha = 1.00001;
     private double balance = 1.0 / 1000.0;
 
 
-    Plan curPlan;
     long curEnergy;
     long bestEnergy;
 
@@ -40,7 +37,6 @@ public class AnnealingScheduler {
     public AnnealingScheduler(Map map, List<Courier> pool) {
         this.map = map;
         this.originalPool = pool;
-        this.curPool = new ArrayList<>(originalPool);
         DateFormat format = new SimpleDateFormat("HH:mm:ss", Locale.ENGLISH);
         startTime = 0;
         try {
@@ -54,7 +50,6 @@ public class AnnealingScheduler {
     public AnnealingScheduler(Map map, List<Courier> pool, Date start, Date end) {
         this.map = map;
         this.originalPool = pool;
-        this.curPool = new ArrayList<>(originalPool);
         this.startTime = start.getTime() / 1000;
         this.timeGap = (end.getTime() - start.getTime()) / 1000;
     }
@@ -69,58 +64,61 @@ public class AnnealingScheduler {
         this.balance = balance;
     }
 
+    private long getCost(List<Courier> couriers) {
+        return new Plan(makeRoutes(couriers)).getCost();
+    }
+
 
     public List<Courier> schedule(List<Order> orders, long additionalCost) {
         this.orders = orders;
         this.n = orders.size();
-        curPlan = constructPlan(orders);
-        curEnergy = curPlan.getCost() + additionalCost;
-        bestEnergy = curPlan.getCost() + additionalCost;
-        bestOrders = orders;
-        getPlan();
+        List<Courier> curPool = constructPool(orders);
+
+        curEnergy = getCost(curPool) + additionalCost;
+        bestEnergy = getCost(curPool) + additionalCost;
+        getBestPool();
         return bestPool;
     }
 
 
-    private Plan getPlan() {
+    private void getBestPool() {
         int i = 1;
         double curT = initT;
+
 
         while (curT > minT) {
             curT = initT / Math.pow(alpha, i);
             ++i;
             List<Order> nextOrders = transformer.f(orders);
-            Plan nextPlan = constructPlan(nextOrders);
-            int nextEnergy = nextPlan.getCost();
+
+            long nextEnergy = getCost(constructPool(nextOrders));
             double delta = nextEnergy - curEnergy;
             if (delta <= 0) {
                 orders = nextOrders;
                 curEnergy = nextEnergy;
             } else {
-                double p = Math.exp(-delta / curT * balance+ 3);
-                System.out.println("iteration: " + i + ". enegy: " + curEnergy + ". temperature: " + curT + ". probability: " + p + " delta: " + delta);
+                double p = Math.exp(-delta / curT * balance + 3);
+                   System.out.println("iteration: " + i + ". enegy: " + curEnergy + ". temperature: " + curT + ". probability: " + p + " delta: " + delta);
                 if ((new Random().nextDouble()) < p) {
                     orders = nextOrders;
                     curEnergy = nextEnergy;
                     System.out.println("allowed!");
                 }
             }
-            if (nextEnergy < bestEnergy) {
-                bestOrders = nextOrders;
-                bestEnergy = nextEnergy;
-            }
         }
 
-        List<Route> bestRoutes = bestPool.stream()
-                .map(c -> new Route(map, c.wayPoints))
-                .collect(Collectors.toList());
-        return new Plan(bestRoutes);
     }
 
+    private List<Route> makeRoutes(List<Courier> couriers) {
+        return couriers.stream()
+                .map(c -> new Route(map, c.wayPoints))
+                .collect(Collectors.toList());
+    }
 
-    private Plan constructPlan(List<Order> orders) {
+    private List<Courier> constructPool(List<Order> orders) {
         Courier courier = null;
-        curPool = new ArrayList<>(originalPool);
+        List<Courier> curPool = originalPool.stream().map(c -> new Courier(c))
+                .collect(Collectors.toList());
 
         for (Order o : orders) {
             if (courier != null && !courier.isAvailable(o, map.time(courier.curOrderId, o.id))) {
@@ -128,7 +126,7 @@ public class AnnealingScheduler {
             }
 
             if (courier == null) {
-                courier = getCourier(o);
+                courier = getCourier(o, curPool);
                 if (courier == null) {
                     courier = new Courier(curPool.size(), 0, startTime);
                     curPool.add(courier);
@@ -139,29 +137,20 @@ public class AnnealingScheduler {
             courier.addOrder(o, map.time(courier.curOrderId, o.id));
         }
 
-        List<Route> routes = new ArrayList<>();
-        for (Courier c : curPool) {
-            routes.add(new Route(map, c.wayPoints));
-        }
-
         if (bestPool == null)
-            bestPool = new ArrayList<>(curPool);
-
-        List<Route> bestRoutes = bestPool.stream()
-                .map(c -> new Route(map, c.wayPoints))
-                .collect(Collectors.toList());
-
-        if ((new Plan(bestRoutes)).getCost() > (new Plan(routes)).getCost())
             bestPool = curPool;
 
-        return new Plan(routes);
+        if (getCost(bestPool) > getCost(curPool))
+            bestPool = curPool;
+
+        return curPool;
     }
 
-    private Courier getCourier(Order order) {
-        if (curPool.isEmpty())
+    private Courier getCourier(Order order, List<Courier> couriers) {
+        if (couriers.isEmpty())
             return null;
         Courier nearestCourier = null;
-        for (Courier c : curPool) {
+        for (Courier c : couriers) {
             if (c.curTime + map.time(c.curOrderId, order.id) < startTime + timeGap) {
                 if (nearestCourier == null
                         || map.time(nearestCourier.curOrderId, order.id) > map.time(c.curOrderId, order.id)) {

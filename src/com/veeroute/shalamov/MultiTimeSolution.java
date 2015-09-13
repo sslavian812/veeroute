@@ -40,8 +40,8 @@ public class MultiTimeSolution implements Solution {
 
             AnnealingScheduler annealingTransformer = new AnnealingScheduler(
                     map, couriers, start[bucketNumber], end[bucketNumber]);
-            // todo set parameters
 
+            // scheduling time cost from previous buckets
             List<Route> routes = new ArrayList<>();
             for (Courier c : couriers) {
                 routes.add(new Route(map, c.wayPoints));
@@ -57,13 +57,6 @@ public class MultiTimeSolution implements Solution {
         return new Plan(routes);
     }
 
-    /**
-     * Constructs routes from given orders (ordered as they are)
-     * using nearest available couriers from couriers and creates new couriers if necessary.
-     *
-     * @param orders
-     * @return
-     */
     @Override
     @Deprecated
     public Plan constructPlan(List<Order> orders) {
