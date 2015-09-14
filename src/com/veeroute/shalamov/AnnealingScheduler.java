@@ -25,8 +25,8 @@ public class AnnealingScheduler {
     long timeGap;
 
     private double initT = 0.05;
-    private double minT = 0.0005;
-    private double alpha = 1.00001;
+    private double minT = 0.0009;
+    private double alpha = 1.0001;
     private double balance = 1.0 / 1000.0;
 
 
